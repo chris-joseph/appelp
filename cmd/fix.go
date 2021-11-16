@@ -116,13 +116,9 @@ func readAndFixImports(path string) {
 
 	arrs.commentsAndDirectives = rex.FindAllString(text, -1)
 
-	fmt.Println(arrs.importStrings)
-
 	arrs.sortAllImports()
 
 	var sb strings.Builder
-
-	fmt.Println(arrs.commentsAndDirectives)
 
 	buildImports(arrs.commentsAndDirectives, &sb)
 	buildImports(arrs.dartStrings, &sb)
