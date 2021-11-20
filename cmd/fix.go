@@ -40,18 +40,14 @@ type ImportArrays struct {
 	modulesImports        []string
 	otherImports          []string
 	commentsAndDirectives []string
+	libraryString         []string
 }
 
 // fixCmd represents the fix command
 var fixCmd = &cobra.Command{
 	Use:   "fix",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Fix dart directory use -i option ",
+	Long:  `Helps in ordering imports`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fstatus, _ := cmd.Flags().GetBool("import")
 
@@ -99,9 +95,11 @@ func fixImportOrder(args []string) {
 func readAndFixImports(path string) {
 	arrs := ImportArrays{}
 
-	rex := regexp.MustCompile("//(.)*@(.)*")
+	rex := regexp.MustCompile("//(.)?@(.)*")
 
-	re := regexp.MustCompile(`(//)*(.)*import '(.)*:(.)*'(.)*;(\s)*`)
+	re := regexp.MustCompile(`(//)*(.)?import '(.)*:(.)*'(.)*;(\s)*`)
+
+	libex := regexp.MustCompile("library(.)*;")
 
 	bs, err := ioutil.ReadFile(path)
 
@@ -116,11 +114,14 @@ func readAndFixImports(path string) {
 
 	arrs.commentsAndDirectives = rex.FindAllString(text, -1)
 
+	arrs.libraryString = libex.FindAllString(text, -1)
+
 	arrs.sortAllImports()
 
 	var sb strings.Builder
 
 	buildImports(arrs.commentsAndDirectives, &sb)
+	buildImports(arrs.libraryString, &sb)
 	buildImports(arrs.dartStrings, &sb)
 	buildImports(arrs.flutterStrings, &sb)
 	buildImports(arrs.thirdPartyImports, &sb)
@@ -134,6 +135,8 @@ func readAndFixImports(path string) {
 	text = re.ReplaceAllString(text, "")
 
 	text = rex.ReplaceAllString(text, "")
+
+	text = libex.ReplaceAllString(text, "")
 
 	text = strings.TrimSpace(text)
 
