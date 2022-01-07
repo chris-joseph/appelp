@@ -24,6 +24,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -42,6 +44,11 @@ type ImportArrays struct {
 	commentsAndDirectives []string
 	libraryString         []string
 }
+
+const concurrency = 16
+
+var jobs = make(chan string)
+var wg sync.WaitGroup
 
 // fixCmd represents the fix command
 var fixCmd = &cobra.Command{
@@ -75,6 +82,9 @@ func init() {
 }
 
 func fixImportOrder(args []string) {
+	var total int
+	start := time.Now()
+	go startConsumers(concurrency)
 	err := filepath.Walk(".",
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -83,12 +93,36 @@ func fixImportOrder(args []string) {
 			if strings.HasSuffix(path, ".dart") {
 				fmt.Println(path, info.Size())
 
-				readAndFixImports(path)
+				jobs <- path
+				total++
+
 			}
 			return nil
 		})
+	wg.Wait()
+	close(jobs)
+	fmt.Printf("\nThreads: %d\n", concurrency)
+	fmt.Printf("Total: %d\n", total)
+	fmt.Printf("Time: %s\n", time.Now().Sub(start).String())
 	if err != nil {
 		log.Println(err)
+	}
+}
+func startConsumers(threads int) {
+	for i := 0; i < threads; i++ {
+		go func() {
+			for {
+				path, ok := <-jobs
+				if !ok {
+					return
+				}
+				wg.Add(1)
+				fmt.Println("WORKING ON --- ", path)
+				readAndFixImports(path)
+				fmt.Println("FINISHED ---- ", path)
+				wg.Done()
+			}
+		}()
 	}
 }
 
