@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
 )
 
 type ImportArrays struct {
@@ -103,7 +104,7 @@ func fixImportOrder(args []string) {
 	close(jobs)
 	fmt.Printf("\nThreads: %d\n", concurrency)
 	fmt.Printf("Total: %d\n", total)
-	fmt.Printf("Time: %s\n", time.Now().Sub(start).String())
+	fmt.Printf("Time: %s\n", time.Since(start).String())
 	if err != nil {
 		log.Println(err)
 	}
